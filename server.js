@@ -1,58 +1,67 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const ytdl = require('ytdl-core');
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname)));
 
-app.get('/download', async (req, res) => {
+app.get('/download', (req, res) => {
     const videoUrl = req.query.url;
 
     if (!videoUrl) {
         return res.status(400).send('Missing video URL');
     }
 
-    // Ensure the link is valid before processing
-    if (!ytdl.validateURL(videoUrl)) {
-        return res.status(400).send('Invalid YouTube URL');
-    }
-
     const outputFilename = `video_${Date.now()}.mp4`;
     const outputPath = path.join(__dirname, outputFilename);
 
-    console.log(`Downloading video via native node streamer: ${videoUrl}`);
+    console.log(`Starting download for: ${videoUrl}`);
 
-    try {
-        // Stream the video directly from YouTube to a local file
-        const videoStream = ytdl(videoUrl, { quality: 'highestvideo' });
-        const fileStream = fs.createWriteStream(outputPath);
+    // On Render (Linux), we use the pre-compiled binary provided by the package
+    // We point to the node_modules folder where ytdlp-nodejs puts the Linux binary
+    const isWindows = process.platform === 'win32';
+    
+    let command;
+    if (isWindows) {
+        command = path.join(__dirname, 'yt-dlp.exe');
+    } else {
+        // Path to the downloaded linux binary inside the npm package
+        command = path.join(__dirname, 'node_modules', 'ytdlp-nodejs', 'bin', 'yt-dlp');
+        // Fallback to global if it fails
+        if (!fs.existsSync(command)) {
+            command = 'yt-dlp';
+        }
+    }
 
-        videoStream.pipe(fileStream);
+    // Use lower quality basic mp4 format directly so it doesn't require ffmpeg on Render
+    const args = [
+        '-f', 'mp4',
+        '-o', outputPath,
+        videoUrl
+    ];
 
-        fileStream.on('finish', () => {
-            console.log("Download finished! Sending to user...");
-            
+    const ytdlp = spawn(command, args);
+
+    ytdlp.stderr.on('data', (data) => {
+        console.log(`yt-dlp: ${data}`);
+    });
+
+    ytdlp.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outputPath)) {
             res.download(outputPath, 'video.mp4', (err) => {
                 if (err) console.error("Error sending file:", err);
-                
                 if (fs.existsSync(outputPath)) {
                     fs.unlinkSync(outputPath);
                 }
             });
-        });
-
-        fileStream.on('error', (err) => {
-            console.error("File stream error:", err);
-            res.status(500).send('Error saving file data.');
-        });
-
-    } catch (error) {
-        console.error("Stream failed:", error);
-        res.status(500).send('Error processing download link.');
-    }
+        } else {
+            console.error(`yt-dlp failed with exit code ${code}`);
+            res.status(500).send('Download failed.');
+        }
+    });
 });
 
 app.listen(PORT, () => {
