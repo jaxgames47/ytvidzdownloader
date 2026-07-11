@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Video Downloader</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #ff0000;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 90%;
+            padding: 12px;
+            border: 2px solid #333;
+            background-color: #2a2a2a;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #ff0000;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>YouTube Downloader</h1>
+    <p>Paste your YouTube link below to download as MP4</p>
+    
+    <input type="text" id="videoLink" placeholder="https://www.youtube.com/watch?v=...">
+    <br>
+    <button onclick="handleDownload()">Download MP4</button>
+
+    <div id="statusMessage"></div>
+</div>
+
+<script>
+    function handleDownload() {
+        const urlInput = document.getElementById('videoLink').value.trim();
+        const status = document.getElementById('statusMessage');
+
+        if (!urlInput) {
+            status.innerHTML = "❌ Please paste a link first!";
+            status.style.color = "#ff4d4d";
+            return;
+        }
+
+        if (!urlInput.includes("youtube.com") && !urlInput.includes("youtu.be")) {
+            status.innerHTML = "❌ Please enter a valid YouTube URL.";
+            status.style.color = "#ff4d4d";
+            return;
+        }
+
+        status.innerHTML = "⏳ Requesting video stream... Your download will start automatically.";
+        status.style.color = "#007bff";
+
+        // This sends the URL directly to your running Node.js server
+        window.location.href = `/download?url=${encodeURIComponent(urlInput)}`;
+    }
+</script>
+
+</body>
+</html>
