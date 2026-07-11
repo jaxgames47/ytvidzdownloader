@@ -14,23 +14,15 @@ app.get('/download', async (req, res) => {
         return res.status(400).send('Missing video URL');
     }
 
-    console.log(`Processing direct stream token for: ${videoUrl}`);
+    console.log(`Processing direct stream for: ${videoUrl}`);
 
     try {
-        // Extract the 11-character video ID from the YouTube URL
-        const match = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        const videoId = match ? match[1] : null;
-
-        if (!videoId) {
-            return res.status(400).send('Could not extract YouTube Video ID');
-        }
-
-        // Request a direct secure MP4 conversion stream
-        const apiUrl = `https://co.wuk.sh/api/json`;
+        // Using the ultra-stable official cobalt production API
+        const apiUrl = `https://api.cobalt.tools/api/json`;
         
         const response = await axios.post(apiUrl, {
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            vQuality: '720', // Clean HD download
+            url: videoUrl,
+            vQuality: '720', // Clean 720p HD resolution
             filenamePattern: 'classic'
         }, {
             headers: {
@@ -39,18 +31,26 @@ app.get('/download', async (req, res) => {
             }
         });
 
+        // The API returns a direct file URL under response.data.url or response.data.text
         if (response.data && response.data.url) {
-            console.log("Success! Redirecting user straight to the file stream.");
-            // Send the high-speed file straight to the browser download manager
+            console.log("Success! Sending download link to user.");
             return res.redirect(response.data.url);
+        } else if (response.data && response.data.text) {
+            return res.status(400).send(`API Message: ${response.data.text}`);
         } else {
-            throw new Error('Streaming server returned empty data path');
+            throw new Error('Streaming server returned an unparseable response structure.');
         }
 
     } catch (error) {
-        console.error("Pipeline breakdown:", error.message);
-        res.status(500).send('Server busy. Please try another video link!');
+        console.error("Download pipeline error:", error.message);
+        // Fallback error message instead of crashing the whole server process
+        res.status(500).send('Download server is currently busy. Please try again in a few moments!');
     }
+});
+
+// Catch any stray unhandled exceptions globally to force the server to stay alive
+process.on('uncaughtException', (err) => {
+    console.error('There was an uncaught error', err);
 });
 
 app.listen(PORT, () => {
