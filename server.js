@@ -4,28 +4,19 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static assets from the current directory
 app.use(express.static(path.join(__dirname)));
 
-// Fallback homepage route to ensure Render sees the server as active
+// This line fixes Render's health check so it goes green
 app.get('/', (req, res) => {
-    res.send('Server is up and running smoothly!');
+    res.send('Server active');
 });
 
 app.get('/download', async (req, res) => {
     const videoUrl = req.query.url;
-
-    if (!videoUrl) {
-        return res.status(400).send('Missing video URL');
-    }
+    if (!videoUrl) return res.status(400).send('Missing video URL');
 
     try {
-        // We use a high-reliability conversion portal designed for application pipelines
-        const cleanUrl = encodeURIComponent(videoUrl);
-        const processingRedirection = `https://api.cobalt.tools/api/json`;
-        
-        // Fetch the streaming path asynchronously from the endpoint
-        const response = await fetch(processingRedirection, {
+        const response = await fetch('https://api.cobalt.tools/api/json', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -39,20 +30,16 @@ app.get('/download', async (req, res) => {
         });
 
         const data = await response.json();
-
         if (data && data.url) {
-            console.log("Redirecting secure pipeline request directly to stream file");
             return res.redirect(data.url);
         } else {
-            return res.status(500).send('Downloader portal is temporarily full. Retrying shortly.');
+            return res.status(500).send('API busy, try again.');
         }
-
     } catch (error) {
-        console.error("Redirection pipeline hitch:", error.message);
-        res.status(500).send('Streaming hub busy. Please try your click again!');
+        res.status(500).send('Error connecting to download portal.');
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server successfully listening on port ${PORT}`);
+    console.log(`Listening on port ${PORT}`);
 });
