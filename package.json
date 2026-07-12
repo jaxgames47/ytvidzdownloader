@@ -1,13 +1,12 @@
 {
   "name": "youtube-downloader",
   "version": "1.0.0",
-  "description": "Lightweight video downloader",
+  "description": "Clean link redirection engine",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "@distube/ytdl-core": "^4.16.12"
+    "express": "^4.19.2"
   }
 }
