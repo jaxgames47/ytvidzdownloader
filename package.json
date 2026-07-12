@@ -1,13 +1,13 @@
 {
   "name": "youtube-downloader",
   "version": "1.0.0",
-  "description": "Lightweight video proxy link stream",
+  "description": "Lightweight video downloader",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "ytdl-core-muxer": "^1.0.3"
+    "@distube/ytdl-core": "^4.16.12"
   }
 }
